@@ -76,8 +76,11 @@ Users need both:
 ## Usage
 
 1. Open any post or page in the block editor
-2. Click the **Redline** sidebar panel (or find it under the three-dot menu → Plugins → Redline)
-3. Click **Check Content**
+2. Invoke Redline via any of these methods:
+   - **Command Palette** — press `Cmd+K` (or `Ctrl+K`), type "Redline", select **Redline: Check Content Against Guidelines**
+   - **Three-dot menu** → Plugins → **Redline** to open the sidebar panel
+   - **Sidebar icon** — once opened, the Redline icon stays in the sidebar toolbar
+3. Click **Check Content** in the sidebar panel
 4. Review results in the sidebar — each flagged block shows its issues with severity and guideline section references
 5. Click on inline Notes in the editor to see detailed issues per block
 6. Use **Clear All Notes** to bulk-remove all Redline-created notes when done
@@ -92,7 +95,7 @@ redline/
 │   ├── class-block-checker.php       # Core: parse blocks, lint, AI prompt, merge results
 │   └── class-note-creator.php        # Creates WP Notes on blocks, updates block metadata
 ├── src/
-│   ├── index.js                      # registerPlugin() + PluginSidebar
+│   ├── index.js                      # registerPlugin() + PluginSidebar + Command Palette
 │   ├── components/
 │   │   ├── sidebar-panel.js          # Check button, results summary, clear notes
 │   │   └── results-list.js           # Per-block issue display with severity badges

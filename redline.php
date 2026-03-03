@@ -5,7 +5,7 @@
  * Version: 1.0.0
  * Requires at least: 6.9
  * Requires PHP: 8.1
- * Author: JMT
+ * Author: Alan Smodic
  * License: GPL-2.0-or-later
  * Text Domain: redline
  */

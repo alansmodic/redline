@@ -1,5 +1,5 @@
 === Redline ===
-Contributors: jmt
+Contributors: alansmodic
 Tags: content-guidelines, editorial, ai, notes, gutenberg
 Requires at least: 6.9
 Tested up to: 7.0
