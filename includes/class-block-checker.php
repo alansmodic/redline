@@ -228,10 +228,19 @@ class Block_Checker {
 		];
 
 		try {
-			$response = \WordPress\AI_Client\AI_Client::prompt( $user_message )
+			$builder = \WordPress\AI_Client\AI_Client::prompt( $user_message )
 				->using_system_instruction( $system )
-				->as_json_response( $schema )
-				->generate_text();
+				->as_json_response( $schema );
+
+			// Try to get a specific Anthropic model to bypass provider availability checks
+			// which can fail if the model listing API is unreachable.
+			if ( \class_exists( 'WordPress\\AnthropicAiProvider\\Provider\\AnthropicProvider' ) ) {
+				$registry = \WordPress\AiClient\AiClient::defaultRegistry();
+				$model    = $registry->getProviderModel( 'anthropic', 'claude-sonnet-4-5-20250514' );
+				$builder  = $builder->using_model( $model );
+			}
+
+			$response = $builder->generate_text();
 
 			$decoded = json_decode( $response, true );
 
