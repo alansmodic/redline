@@ -344,9 +344,9 @@ class Block_Checker {
 		}
 
 		$body = [
-			'model'      => 'claude-3-7-sonnet-20250219',
+			'model'      => 'claude-3-5-sonnet-20241022',
 			'max_tokens' => 4096,
-			'system'     => $system,
+			'system'     => $system . "\n\nYou MUST respond with valid JSON only. No other text.",
 			'messages'   => [
 				[
 					'role'    => 'user',
@@ -355,19 +355,11 @@ class Block_Checker {
 			],
 		];
 
-		if ( ! empty( $schema ) ) {
-			$body['output_format'] = [
-				'type'   => 'json_schema',
-				'schema' => $schema,
-			];
-		}
-
 		$response = \wp_remote_post( 'https://api.anthropic.com/v1/messages', [
 			'headers' => [
 				'Content-Type'      => 'application/json',
 				'x-api-key'         => $api_key,
 				'anthropic-version'  => '2023-06-01',
-				'anthropic-beta'     => 'structured-outputs-2025-11-13',
 			],
 			'body'    => \wp_json_encode( $body ),
 			'timeout' => 60,
