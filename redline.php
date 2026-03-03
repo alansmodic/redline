@@ -88,10 +88,11 @@ add_action( 'enqueue_block_editor_assets', function () {
 	);
 
 	// Pass dependency status to JS so the sidebar can show actionable messages.
-	wp_localize_script( 'redline', 'redlineConfig', [
-		'hasContentGuidelines' => function_exists( 'wp_get_content_guidelines_for_post' ),
-		'hasAiClient'          => function_exists( 'wp_ai_client_prompt' ),
+	$config = wp_json_encode( [
+		'hasContentGuidelines' => function_exists( 'wp_get_content_guidelines_for_post' ) || class_exists( 'ContentGuidelines\\Context_Packet_Builder' ),
+		'hasAiClient'          => function_exists( 'wp_ai_client_prompt' ) || class_exists( 'WP_AI_Client' ),
 	] );
+	wp_add_inline_script( 'redline', "window.redlineConfig = {$config};", 'before' );
 
 	wp_enqueue_style(
 		'redline',
