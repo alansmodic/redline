@@ -41,7 +41,7 @@ spl_autoload_register( function ( $class ) {
 add_action( 'plugins_loaded', function () {
 	$missing = [];
 
-	if ( ! function_exists( 'wp_get_content_guidelines_for_post' ) ) {
+	if ( ! function_exists( 'wp_get_content_guidelines_for_post' ) && ! function_exists( 'ContentGuidelines\\wp_get_content_guidelines_for_post' ) ) {
 		$missing[] = 'Content Guidelines';
 	}
 
@@ -89,7 +89,7 @@ add_action( 'enqueue_block_editor_assets', function () {
 
 	// Pass dependency status to JS so the sidebar can show actionable messages.
 	$config = wp_json_encode( [
-		'hasContentGuidelines' => function_exists( 'wp_get_content_guidelines_for_post' ) || class_exists( 'ContentGuidelines\\Context_Packet_Builder' ),
+		'hasContentGuidelines' => function_exists( 'wp_get_content_guidelines_for_post' ) || function_exists( 'ContentGuidelines\\wp_get_content_guidelines_for_post' ) || class_exists( 'ContentGuidelines\\Context_Packet_Builder' ),
 		'hasAiClient'          => function_exists( 'wp_ai_client_prompt' ) || class_exists( 'WP_AI_Client' ),
 	] );
 	wp_add_inline_script( 'redline', "window.redlineConfig = {$config};", 'before' );

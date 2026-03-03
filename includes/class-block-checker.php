@@ -59,11 +59,13 @@ class Block_Checker {
 		}
 
 		// Get content guidelines for this post.
-		if ( ! \function_exists( 'wp_get_content_guidelines_for_post' ) ) {
+		if ( \function_exists( 'wp_get_content_guidelines_for_post' ) ) {
+			$guidelines = \wp_get_content_guidelines_for_post( $post_id );
+		} elseif ( \function_exists( 'ContentGuidelines\\wp_get_content_guidelines_for_post' ) ) {
+			$guidelines = \ContentGuidelines\wp_get_content_guidelines_for_post( $post_id );
+		} else {
 			return new WP_Error( 'redline_no_guidelines_plugin', 'Content Guidelines plugin is not active.', [ 'status' => 422 ] );
 		}
-
-		$guidelines = \wp_get_content_guidelines_for_post( $post_id );
 
 		if ( empty( $guidelines ) ) {
 			return new WP_Error( 'redline_no_guidelines', 'No content guidelines configured for this post.', [ 'status' => 422 ] );
@@ -131,9 +133,13 @@ class Block_Checker {
 		}
 
 		// Lint_Checker::check() takes content string + guidelines array.
-		$raw_guidelines = \function_exists( 'wp_get_content_guidelines' )
-			? \wp_get_content_guidelines( 'active' )
-			: [];
+		if ( \function_exists( 'wp_get_content_guidelines' ) ) {
+			$raw_guidelines = \wp_get_content_guidelines( 'active' );
+		} elseif ( \function_exists( 'ContentGuidelines\\wp_get_content_guidelines' ) ) {
+			$raw_guidelines = \ContentGuidelines\wp_get_content_guidelines( 'active' );
+		} else {
+			$raw_guidelines = [];
+		}
 
 		if ( empty( $raw_guidelines ) ) {
 			return $results;
