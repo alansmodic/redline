@@ -344,7 +344,7 @@ class Block_Checker {
 		}
 
 		$body = [
-			'model'      => 'claude-sonnet-4-5-20250514',
+			'model'      => 'claude-3-7-sonnet-20250219',
 			'max_tokens' => 4096,
 			'system'     => $system,
 			'messages'   => [
