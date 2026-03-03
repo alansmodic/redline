@@ -26,14 +26,14 @@ class Block_Checker {
 	 * @return array|WP_Error Results array or error.
 	 */
 	public function check( int $post_id ): array|WP_Error {
-		$post = get_post( $post_id );
+		$post = \get_post( $post_id );
 
 		if ( ! $post ) {
 			return new WP_Error( 'redline_no_post', 'Post not found.', [ 'status' => 404 ] );
 		}
 
 		// Parse blocks from post content.
-		$blocks = parse_blocks( $post->post_content );
+		$blocks = \parse_blocks( $post->post_content );
 		$blocks = $this->flatten_blocks( $blocks );
 
 		// Filter to content blocks only.
@@ -59,19 +59,23 @@ class Block_Checker {
 		}
 
 		// Get content guidelines for this post.
-		$guidelines = wp_get_content_guidelines_for_post( $post_id );
+		if ( ! \function_exists( 'wp_get_content_guidelines_for_post' ) ) {
+			return new WP_Error( 'redline_no_guidelines_plugin', 'Content Guidelines plugin is not active.', [ 'status' => 422 ] );
+		}
+
+		$guidelines = \wp_get_content_guidelines_for_post( $post_id );
 
 		if ( empty( $guidelines ) ) {
 			return new WP_Error( 'redline_no_guidelines', 'No content guidelines configured for this post.', [ 'status' => 422 ] );
 		}
 
 		// Run free lint checks first.
-		$lint_results = $this->run_lint_checks( $content_blocks, $post_id );
+		$lint_results = $this->run_lint_checks( $content_blocks, $guidelines );
 
 		// Build and send AI prompt.
 		$ai_results = $this->run_ai_check( $content_blocks, $guidelines, $lint_results );
 
-		if ( is_wp_error( $ai_results ) ) {
+		if ( \is_wp_error( $ai_results ) ) {
 			return $ai_results;
 		}
 
@@ -113,31 +117,40 @@ class Block_Checker {
 		if ( $block['blockName'] === 'core/image' ) {
 			return $block['attrs']['alt'] ?? '(no alt text)';
 		}
-		return wp_strip_all_tags( $block['innerHTML'] );
+		return \wp_strip_all_tags( $block['innerHTML'] );
 	}
 
 	/**
 	 * Run Lint_Checker on each content block.
 	 */
-	private function run_lint_checks( array $content_blocks, int $post_id ): array {
+	private function run_lint_checks( array $content_blocks, array $guidelines ): array {
 		$results = [];
 
-		if ( ! class_exists( 'ContentGuidelines\\Lint_Checker' ) ) {
+		if ( ! \class_exists( 'ContentGuidelines\\Lint_Checker' ) ) {
+			return $results;
+		}
+
+		// Lint_Checker::check() takes content string + guidelines array.
+		$raw_guidelines = \function_exists( 'wp_get_content_guidelines' )
+			? \wp_get_content_guidelines( 'active' )
+			: [];
+
+		if ( empty( $raw_guidelines ) ) {
 			return $results;
 		}
 
 		foreach ( $content_blocks as $cb ) {
-			$lint = \ContentGuidelines\Lint_Checker::check( $cb['content'], $cb['block_name'], $post_id );
+			$lint = \ContentGuidelines\Lint_Checker::check( $cb['content'], $raw_guidelines );
 
-			if ( ! empty( $lint ) ) {
+			if ( ! empty( $lint['issues'] ) ) {
 				$results[ $cb['index'] ] = array_map( function ( $issue ) {
 					return [
-						'message'           => $issue['message'] ?? $issue,
+						'message'           => $issue['message'] ?? ( is_string( $issue ) ? $issue : '' ),
 						'severity'          => 'warning',
-						'guideline_section' => 'Vocabulary / Readability',
+						'guideline_section' => $issue['type'] ?? 'Vocabulary / Readability',
 						'source'            => 'lint',
 					];
-				}, (array) $lint );
+				}, $lint['issues'] );
 			}
 		}
 
@@ -148,6 +161,10 @@ class Block_Checker {
 	 * Run AI check on all content blocks.
 	 */
 	private function run_ai_check( array $content_blocks, array $guidelines, array $lint_results ): array|WP_Error {
+		if ( ! \function_exists( 'wp_ai_client_prompt' ) ) {
+			return new WP_Error( 'redline_no_ai', 'WP AI Client plugin is not active. Only lint results are available.', [ 'status' => 422 ] );
+		}
+
 		$guidelines_text = $this->format_guidelines( $guidelines );
 
 		// Build numbered block list.
@@ -205,7 +222,7 @@ class Block_Checker {
 		];
 
 		try {
-			$response = wp_ai_client_prompt( $user_message )
+			$response = \wp_ai_client_prompt( $user_message )
 				->usingSystemInstruction( $system )
 				->asJsonResponse( $schema )
 				->generateText();
@@ -250,7 +267,7 @@ class Block_Checker {
 			if ( is_string( $value ) ) {
 				$text .= "### {$key}\n{$value}\n\n";
 			} elseif ( is_array( $value ) ) {
-				$text .= "### {$key}\n" . wp_json_encode( $value, JSON_PRETTY_PRINT ) . "\n\n";
+				$text .= "### {$key}\n" . \wp_json_encode( $value, JSON_PRETTY_PRINT ) . "\n\n";
 			}
 		}
 		return $text;

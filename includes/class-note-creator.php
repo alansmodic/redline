@@ -27,19 +27,19 @@ class Note_Creator {
 
 			$message = $this->format_note_message( $result );
 
-			$comment_id = wp_insert_comment( [
-				'comment_post_ID' => $post_id,
-				'comment_content' => $message,
-				'comment_type'    => 'note',
-				'comment_author'  => 'Redline',
-				'user_id'         => get_current_user_id(),
+			$comment_id = \wp_insert_comment( [
+				'comment_post_ID'  => $post_id,
+				'comment_content'  => $message,
+				'comment_type'     => 'note',
+				'comment_author'   => 'Redline',
+				'user_id'          => \get_current_user_id(),
 				'comment_approved' => 1,
 			] );
 
 			if ( $comment_id ) {
 				// Store the block index as comment meta for reference.
-				update_comment_meta( $comment_id, '_redline_block_index', $result['block_index'] );
-				update_comment_meta( $comment_id, '_redline_checker_note', true );
+				\update_comment_meta( $comment_id, '_redline_block_index', $result['block_index'] );
+				\update_comment_meta( $comment_id, '_redline_checker_note', true );
 				$created++;
 			}
 		}
@@ -76,13 +76,13 @@ class Note_Creator {
 	 * Update post block markup to attach note IDs as metadata.
 	 */
 	private function update_block_metadata( int $post_id ): void {
-		$post = get_post( $post_id );
+		$post = \get_post( $post_id );
 		if ( ! $post ) {
 			return;
 		}
 
 		// Get all checker notes for this post.
-		$notes = get_comments( [
+		$notes = \get_comments( [
 			'post_id'    => $post_id,
 			'type'       => 'note',
 			'meta_key'   => '_redline_checker_note',
@@ -96,14 +96,14 @@ class Note_Creator {
 		// Build a map of block_index => note IDs.
 		$note_map = [];
 		foreach ( $notes as $note ) {
-			$block_index = get_comment_meta( $note->comment_ID, '_redline_block_index', true );
+			$block_index = \get_comment_meta( $note->comment_ID, '_redline_block_index', true );
 			if ( $block_index !== '' ) {
 				$note_map[ (int) $block_index ][] = $note->comment_ID;
 			}
 		}
 
 		// Parse blocks, add noteId metadata, serialize back.
-		$blocks   = parse_blocks( $post->post_content );
+		$blocks   = \parse_blocks( $post->post_content );
 		$flat     = $this->flatten_with_paths( $blocks );
 		$modified = false;
 
@@ -132,8 +132,8 @@ class Note_Creator {
 		}
 
 		if ( $modified ) {
-			$new_content = serialize_blocks( $blocks );
-			wp_update_post( [
+			$new_content = \serialize_blocks( $blocks );
+			\wp_update_post( [
 				'ID'           => $post_id,
 				'post_content' => $new_content,
 			] );
@@ -177,7 +177,7 @@ class Note_Creator {
 	 * @return int Number of notes cleared.
 	 */
 	public function clear_notes( int $post_id ): int {
-		$notes = get_comments( [
+		$notes = \get_comments( [
 			'post_id'    => $post_id,
 			'type'       => 'note',
 			'meta_key'   => '_redline_checker_note',
@@ -187,7 +187,7 @@ class Note_Creator {
 
 		$cleared = 0;
 		foreach ( $notes as $note ) {
-			if ( wp_delete_comment( $note->comment_ID, true ) ) {
+			if ( \wp_delete_comment( $note->comment_ID, true ) ) {
 				$cleared++;
 			}
 		}
