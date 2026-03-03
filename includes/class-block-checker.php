@@ -231,6 +231,10 @@ class Block_Checker {
 		try {
 			$response = $this->call_anthropic_api( $system, $user_message, $schema );
 
+			if ( \is_wp_error( $response ) ) {
+				return $response;
+			}
+
 			$decoded = json_decode( $response, true );
 
 			if ( json_last_error() !== JSON_ERROR_NONE ) {
