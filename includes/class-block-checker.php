@@ -208,14 +208,16 @@ class Block_Checker {
 		$schema = [
 			'type'  => 'array',
 			'items' => [
-				'type'       => 'object',
-				'properties' => [
+				'type'                 => 'object',
+				'additionalProperties' => false,
+				'properties'           => [
 					'block_index' => [ 'type' => 'integer' ],
 					'issues'      => [
 						'type'  => 'array',
 						'items' => [
-							'type'       => 'object',
-							'properties' => [
+							'type'                 => 'object',
+							'additionalProperties' => false,
+							'properties'           => [
 								'message'           => [ 'type' => 'string' ],
 								'severity'          => [ 'type' => 'string', 'enum' => [ 'error', 'warning', 'info' ] ],
 								'guideline_section' => [ 'type' => 'string' ],
