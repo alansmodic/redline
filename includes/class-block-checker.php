@@ -237,10 +237,20 @@ class Block_Checker {
 				return $response;
 			}
 
-			$decoded = json_decode( $response, true );
+			// Strip markdown code fences if the model wrapped the JSON.
+			$json = trim( $response );
+			if ( preg_match( '/^```(?:json)?\s*\n(.*)\n```$/s', $json, $m ) ) {
+				$json = trim( $m[1] );
+			}
+
+			$decoded = json_decode( $json, true );
 
 			if ( json_last_error() !== JSON_ERROR_NONE ) {
-				return new WP_Error( 'redline_ai_parse_error', 'Failed to parse AI response as JSON.', [ 'status' => 500 ] );
+				return new WP_Error(
+					'redline_ai_parse_error',
+					'Failed to parse AI response as JSON: ' . json_last_error_msg(),
+					[ 'status' => 500, 'raw' => mb_substr( $response, 0, 500 ) ]
+				);
 			}
 
 			// Key results by block_index for the content_blocks mapping.
