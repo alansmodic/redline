@@ -167,7 +167,7 @@ class Block_Checker {
 	 * Run AI check on all content blocks.
 	 */
 	private function run_ai_check( array $content_blocks, array $guidelines, array $lint_results ): array|WP_Error {
-		if ( ! \function_exists( 'wp_ai_client_prompt' ) ) {
+		if ( ! \class_exists( 'WordPress\\AI_Client\\AI_Client' ) ) {
 			return new WP_Error( 'redline_no_ai', 'WP AI Client plugin is not active. Only lint results are available.', [ 'status' => 422 ] );
 		}
 
@@ -228,10 +228,10 @@ class Block_Checker {
 		];
 
 		try {
-			$response = \wp_ai_client_prompt( $user_message )
-				->usingSystemInstruction( $system )
-				->asJsonResponse( $schema )
-				->generateText();
+			$response = \WordPress\AI_Client\AI_Client::prompt( $user_message )
+				->using_system_instruction( $system )
+				->as_json_response( $schema )
+				->generate_text();
 
 			$decoded = json_decode( $response, true );
 
