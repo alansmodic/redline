@@ -45,8 +45,9 @@ add_action( 'plugins_loaded', function () {
 		$missing[] = 'Content Guidelines';
 	}
 
-	if ( ! class_exists( 'WordPress\\AI_Client\\AI_Client' ) ) {
-		$missing[] = 'WP AI Client';
+	$ai_credentials = get_option( 'wp_ai_client_provider_credentials', [] );
+	if ( empty( $ai_credentials['anthropic'] ) ) {
+		$missing[] = 'Anthropic API key (Settings → AI Client Credentials)';
 	}
 
 	if ( ! empty( $missing ) ) {
@@ -90,7 +91,7 @@ add_action( 'enqueue_block_editor_assets', function () {
 	// Pass dependency status to JS so the sidebar can show actionable messages.
 	$config = wp_json_encode( [
 		'hasContentGuidelines' => function_exists( 'wp_get_content_guidelines_for_post' ) || function_exists( 'ContentGuidelines\\wp_get_content_guidelines_for_post' ) || class_exists( 'ContentGuidelines\\Context_Packet_Builder' ),
-		'hasAiClient'          => class_exists( 'WordPress\\AI_Client\\AI_Client' ),
+		'hasAiClient'          => ! empty( get_option( 'wp_ai_client_provider_credentials', [] )['anthropic'] ),
 	] );
 	wp_add_inline_script( 'redline', "window.redlineConfig = {$config};", 'before' );
 

@@ -167,8 +167,9 @@ class Block_Checker {
 	 * Run AI check on all content blocks.
 	 */
 	private function run_ai_check( array $content_blocks, array $guidelines, array $lint_results ): array|WP_Error {
-		if ( ! \class_exists( 'WordPress\\AI_Client\\AI_Client' ) ) {
-			return new WP_Error( 'redline_no_ai', 'WP AI Client plugin is not active. Only lint results are available.', [ 'status' => 422 ] );
+		$api_key = $this->get_anthropic_api_key();
+		if ( ! $api_key ) {
+			return new WP_Error( 'redline_no_ai', 'No Anthropic API key configured. Add one in Settings → AI Client Credentials.', [ 'status' => 422 ] );
 		}
 
 		$guidelines_text = $this->format_guidelines( $guidelines );
@@ -228,19 +229,7 @@ class Block_Checker {
 		];
 
 		try {
-			$builder = \WordPress\AI_Client\AI_Client::prompt( $user_message )
-				->using_system_instruction( $system )
-				->as_json_response( $schema );
-
-			// Try to get a specific Anthropic model to bypass provider availability checks
-			// which can fail if the model listing API is unreachable.
-			if ( \class_exists( 'WordPress\\AnthropicAiProvider\\Provider\\AnthropicProvider' ) ) {
-				$registry = \WordPress\AiClient\AiClient::defaultRegistry();
-				$model    = $registry->getProviderModel( 'anthropic', 'claude-sonnet-4-5-20250514' );
-				$builder  = $builder->using_model( $model );
-			}
-
-			$response = $builder->generate_text();
+			$response = $this->call_anthropic_api( $system, $user_message, $schema );
 
 			$decoded = json_decode( $response, true );
 
@@ -326,5 +315,74 @@ class Block_Checker {
 		}
 
 		return $merged;
+	}
+
+	/**
+	 * Get the Anthropic API key from the WP AI Client credentials.
+	 */
+	private function get_anthropic_api_key(): ?string {
+		$credentials = \get_option( 'wp_ai_client_provider_credentials', [] );
+		if ( ! is_array( $credentials ) || empty( $credentials['anthropic'] ) ) {
+			return null;
+		}
+		return $credentials['anthropic'];
+	}
+
+	/**
+	 * Call the Anthropic Messages API directly via wp_remote_post.
+	 */
+	private function call_anthropic_api( string $system, string $user_message, array $schema ): string|WP_Error {
+		$api_key = $this->get_anthropic_api_key();
+		if ( ! $api_key ) {
+			return new WP_Error( 'redline_no_api_key', 'No Anthropic API key found.' );
+		}
+
+		$body = [
+			'model'      => 'claude-sonnet-4-5-20250514',
+			'max_tokens' => 4096,
+			'system'     => $system,
+			'messages'   => [
+				[
+					'role'    => 'user',
+					'content' => $user_message,
+				],
+			],
+		];
+
+		if ( ! empty( $schema ) ) {
+			$body['output_format'] = [
+				'type'   => 'json_schema',
+				'schema' => $schema,
+			];
+		}
+
+		$response = \wp_remote_post( 'https://api.anthropic.com/v1/messages', [
+			'headers' => [
+				'Content-Type'      => 'application/json',
+				'x-api-key'         => $api_key,
+				'anthropic-version'  => '2023-06-01',
+				'anthropic-beta'     => 'structured-outputs-2025-11-13',
+			],
+			'body'    => \wp_json_encode( $body ),
+			'timeout' => 60,
+		] );
+
+		if ( \is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$status = \wp_remote_retrieve_response_code( $response );
+		$body   = \wp_remote_retrieve_body( $response );
+
+		if ( $status !== 200 ) {
+			return new WP_Error( 'redline_api_error', sprintf( 'Anthropic API returned %d: %s', $status, $body ), [ 'status' => 502 ] );
+		}
+
+		$data = json_decode( $body, true );
+		if ( ! isset( $data['content'][0]['text'] ) ) {
+			return new WP_Error( 'redline_api_parse', 'Unexpected API response format.', [ 'status' => 500 ] );
+		}
+
+		return $data['content'][0]['text'];
 	}
 }
