@@ -36,7 +36,7 @@ spl_autoload_register( function ( $class ) {
 } );
 
 /**
- * Check plugin dependencies on plugins_loaded.
+ * Initialize REST controller if dependencies are available.
  */
 add_action( 'plugins_loaded', function () {
 	$missing = [];
@@ -57,22 +57,22 @@ add_action( 'plugins_loaded', function () {
 				esc_html( $list )
 			);
 		} );
-		return;
+		// Still continue — the sidebar JS loads regardless so users can see what's wrong.
 	}
 
-	// Initialize REST controller.
+	// Initialize REST controller (it handles missing deps via error responses).
 	$controller = new Redline\Rest_Controller();
 	$controller->init();
+
+	// Initialize post list table actions (row action + bulk action).
+	$list_table = new Redline\List_Table();
+	$list_table->init();
 } );
 
 /**
- * Enqueue block editor assets.
+ * Always enqueue block editor assets so the sidebar and command palette commands register.
  */
 add_action( 'enqueue_block_editor_assets', function () {
-	if ( ! function_exists( 'wp_get_content_guidelines_for_post' ) || ! function_exists( 'wp_ai_client_prompt' ) ) {
-		return;
-	}
-
 	$asset_file = REDLINE_PLUGIN_DIR . 'build/index.asset.php';
 	$asset      = file_exists( $asset_file ) ? require $asset_file : [
 		'dependencies' => [],
@@ -86,6 +86,12 @@ add_action( 'enqueue_block_editor_assets', function () {
 		$asset['version'],
 		true
 	);
+
+	// Pass dependency status to JS so the sidebar can show actionable messages.
+	wp_localize_script( 'redline', 'redlineConfig', [
+		'hasContentGuidelines' => function_exists( 'wp_get_content_guidelines_for_post' ),
+		'hasAiClient'          => function_exists( 'wp_ai_client_prompt' ),
+	] );
 
 	wp_enqueue_style(
 		'redline',

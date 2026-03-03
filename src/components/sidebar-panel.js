@@ -5,6 +5,8 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import ResultsList from './results-list';
 
+const config = window.redlineConfig || {};
+
 export default function SidebarPanel() {
 	const [ isChecking, setIsChecking ] = useState( false );
 	const [ isClearing, setIsClearing ] = useState( false );
@@ -17,6 +19,15 @@ export default function SidebarPanel() {
 	);
 
 	const { savePost, refreshPost } = useDispatch( 'core/editor' );
+
+	// Show dependency warnings if plugins are missing.
+	const missingDeps = [];
+	if ( ! config.hasContentGuidelines ) {
+		missingDeps.push( 'Content Guidelines' );
+	}
+	if ( ! config.hasAiClient ) {
+		missingDeps.push( 'WP AI Client' );
+	}
 
 	const handleCheck = async () => {
 		setIsChecking( true );
@@ -76,11 +87,20 @@ export default function SidebarPanel() {
 
 	return (
 		<div className="rdl-sidebar-panel">
+			{ missingDeps.length > 0 && (
+				<Notice status="error" isDismissible={ false }>
+					{ __( 'Missing required plugins: ', 'redline' ) }
+					<strong>{ missingDeps.join( ', ' ) }</strong>
+					{ '. ' }
+					{ __( 'Install and activate them to run checks.', 'redline' ) }
+				</Notice>
+			) }
+
 			<div className="rdl-sidebar-panel__actions">
 				<Button
 					variant="primary"
 					onClick={ handleCheck }
-					disabled={ isChecking || ! postId }
+					disabled={ isChecking || ! postId || missingDeps.length > 0 }
 					className="rdl-sidebar-panel__check-btn"
 				>
 					{ isChecking ? (
