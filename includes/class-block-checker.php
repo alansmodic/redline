@@ -355,6 +355,13 @@ class Block_Checker {
 			],
 		];
 
+		// Disable WordPress's low-speed cURL check — AI responses stream slowly.
+		$disable_low_speed = function ( $handle ) {
+			curl_setopt( $handle, CURLOPT_LOW_SPEED_LIMIT, 0 );
+			curl_setopt( $handle, CURLOPT_LOW_SPEED_TIME, 0 );
+		};
+		\add_action( 'http_api_curl', $disable_low_speed );
+
 		$response = \wp_remote_post( 'https://api.anthropic.com/v1/messages', [
 			'headers' => [
 				'Content-Type'      => 'application/json',
@@ -362,8 +369,10 @@ class Block_Checker {
 				'anthropic-version'  => '2023-06-01',
 			],
 			'body'    => \wp_json_encode( $body ),
-			'timeout' => 60,
+			'timeout' => 120,
 		] );
+
+		\remove_action( 'http_api_curl', $disable_low_speed );
 
 		if ( \is_wp_error( $response ) ) {
 			return $response;
