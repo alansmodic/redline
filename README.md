@@ -61,7 +61,7 @@ Users need both:
 3. Clone this repo into your plugins directory:
    ```bash
    cd wp-content/plugins
-   git clone https://github.com/jamesmodic/redline.git
+   git clone https://github.com/alansmodic/redline.git
    ```
 
 4. Install dependencies and build:
