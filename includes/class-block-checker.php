@@ -84,14 +84,9 @@ class Block_Checker {
 		// Merge lint and AI results.
 		$merged = $this->merge_results( $content_blocks, $lint_results, $ai_results );
 
-		// Create notes on flagged blocks.
-		$note_creator  = new Note_Creator();
-		$notes_created = $note_creator->create_notes( $post_id, $merged, $blocks );
-
 		return [
-			'success'       => true,
-			'results'       => $merged,
-			'notes_created' => $notes_created,
+			'success' => true,
+			'results' => $merged,
 		];
 	}
 
